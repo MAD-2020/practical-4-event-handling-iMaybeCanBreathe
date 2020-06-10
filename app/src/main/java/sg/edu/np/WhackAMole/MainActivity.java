@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -23,21 +24,49 @@ public class MainActivity extends AppCompatActivity {
         - Feel free to modify the function to suit your program.
     */
 
+    final String TAG = "Whackamole";
+    Button button1;
+    Button button2;
+    Button button3;
+    ArrayList<Button> buttonList = new ArrayList<Button>();
+    int currentMole;
+    int score;
+    TextView scoreText;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.v(TAG, "OnCreate");
+
+        button1 = findViewById(R.id.button1);
+        button2 = findViewById(R.id.button2);
+        button3 = findViewById(R.id.button3);
+        buttonList.add(button1);
+        buttonList.add(button2);
+        buttonList.add(button3);
+        Log.v(TAG, "Buttons set!");
+
+        for (Button button: buttonList) {
+            button.setOnClickListener(moleListener);
+        }
+        Log.v(TAG, "Listeners set!");
+
+        scoreText = findViewById(R.id.scoreText);
+        score = 0;
+        Log.v(TAG, "set score");
+        scoreText.setText(Integer.toString(score));
 
         Log.v(TAG, "Finished Pre-Initialisation!");
-
-
     }
+
     @Override
     protected void onStart(){
         super.onStart();
-        setNewMole();
+        currentMole = setNewMole();
         Log.v(TAG, "Starting GUI!");
     }
+
     @Override
     protected void onPause(){
         super.onPause();
@@ -51,27 +80,75 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    private void doCheck(Button checkButton) {
-        /* Checks for hit or miss and if user qualify for advanced page.
-            Triggers nextLevelQuery().
-         */
+    private void doCheck(int checkButtonId) {
+        if (checkButtonId == buttonList.get(currentMole).getId()){
+            //add score
+            score += 1;
+            scoreText.setText(Integer.toString(score));
+            //check if score is multiple of 10
+            if (score%10 == 0) {
+                nextLevelQuery();
+            }
+        }
+        else{
+            //log wrong button pressed
+            Log.v(TAG, "Wrong Button Pressed!");
+        }
+        //set all moles to "O"
+        for (Button button: buttonList) {
+            button.setText("O");
+        }
+        //set new mole
+        currentMole = setNewMole();
     }
 
     private void nextLevelQuery(){
-        /*
-        Builds dialog box here.
-        Log.v(TAG, "User accepts!");
-        Log.v(TAG, "User decline!");
-        Log.v(TAG, "Advance option given to user!");
-        belongs here*/
+
+        //Builds alert here.
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+
+        Log.v(TAG, "new stage dialog building");
+        alertBuilder.setTitle("New Stage Unlocked!");
+        alertBuilder.setMessage("You have unlocked a special stage! Would you like to play?");
+        alertBuilder.setCancelable(true);
+        alertBuilder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Log.v(TAG, "Starting new stage");
+                nextLevel();
+            }
+        });
+        alertBuilder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Log.v(TAG, "User decline new stage");
+            }
+        });
+
+        //show alert
+        AlertDialog alert = alertBuilder.create();
+        alert.show();
     }
 
     private void nextLevel(){
         /* Launch advanced page */
+        Intent intent = new Intent(MainActivity.this, Main2Activity.class);
+        intent.putExtra("currentPoints", score);
+        startActivity(intent);
     }
 
-    private void setNewMole() {
+    public int setNewMole()
+    {
         Random ran = new Random();
         int randomLocation = ran.nextInt(3);
+        buttonList.get(randomLocation).setText("*");
+        return randomLocation;
     }
+
+    View.OnClickListener moleListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            doCheck(v.getId());
+        }
+    };
 }

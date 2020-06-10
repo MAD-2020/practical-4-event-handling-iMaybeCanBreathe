@@ -10,7 +10,10 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Main2Activity extends AppCompatActivity {
     /* Hint
@@ -20,7 +23,11 @@ public class Main2Activity extends AppCompatActivity {
         - Feel free to modify the function to suit your program.
     */
 
-
+    final String TAG = "Whackamole";
+    int currentMole;
+    int score;
+    TextView scoreText;
+    Toast countdownToast = null;
 
     private void readyTimer(){
         /*  HINT:
@@ -32,6 +39,30 @@ public class Main2Activity extends AppCompatActivity {
             belongs here.
             This timer countdown from 10 seconds to 0 seconds and stops after "GO!" is shown.
          */
+
+        CountDownTimer readyCountdown = new CountDownTimer(10000, 1000) {
+            @Override
+            public void onTick(long l) {
+                Log.v(TAG, "Countdown: " + l/1000);
+                if (countdownToast != null) {countdownToast.cancel();}
+                countdownToast = Toast.makeText(getApplicationContext(), "Game starts in: " + l/1000, Toast.LENGTH_SHORT);
+                countdownToast.show();
+            }
+
+            @Override
+            public void onFinish() {
+                if (countdownToast != null) {countdownToast.cancel();}
+                Toast.makeText(getApplicationContext(), "Game starts now!" , Toast.LENGTH_SHORT).show();
+
+                //set onclick listener after ready countdown finish
+                for (Button button: buttonList) {
+                    button.setOnClickListener(moleListener);
+                }
+                placeMoleTimer();
+            }
+        };
+
+        readyCountdown.start();
     }
     private void placeMoleTimer(){
         /* HINT:
@@ -41,12 +72,37 @@ public class Main2Activity extends AppCompatActivity {
            belongs here.
            This is an infinite countdown timer.
          */
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                for (final Button button: buttonList) {
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+
+                            button.setText("O");
+
+                        }
+                    });
+                }
+                currentMole = setNewMole();
+                Log.v(TAG, "tick");
+            }
+        },100, 1000);
     }
-    private static final int[] BUTTON_IDS = {
+    private static final int[] BUTTON_ID = {
         /* HINT:
             Stores the 9 buttons IDs here for those who wishes to use array to create all 9 buttons.
             You may use if you wish to change or remove to suit your codes.*/
+        R.id.button1,R.id.button2,R.id.button3,
+            R.id.button4,R.id.button5,R.id.button6,
+            R.id.button7,R.id.button8,R.id.button9
     };
+
+    private static ArrayList<Button> buttonList = new ArrayList<Button>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         /*Hint:
@@ -59,38 +115,73 @@ public class Main2Activity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
 
-        Log.v(TAG, "Current User Score: " + String.valueOf(advancedScore));
+        //Log.v(TAG, "Current User Score: " + String.valueOf(advancedScore));
 
 
-        for(final int id : BUTTON_IDS){
+        for(final int id : BUTTON_ID){
             /*  HINT:
             This creates a for loop to populate all 9 buttons with listeners.
             You may use if you wish to remove or change to suit your codes.
             */
+            buttonList.add((Button) findViewById(id));
         }
+
+        Intent receivedIntent = getIntent();
+        score = receivedIntent.getIntExtra("currentPoints", 0);
+        scoreText = findViewById(R.id.scoreText);
+        scoreText.setText(Integer.toString(score));
+
+        readyTimer();
     }
     @Override
     protected void onStart(){
         super.onStart();
     }
-    private void doCheck(Button checkButton)
+
+    private void doCheck(Button checkButtonId)
     {
-        /* Hint:
-            Checks for hit or miss
-            Log.v(TAG, "Hit, score added!");
-            Log.v(TAG, "Missed, point deducted!");
-            belongs here.
-        */
+        if (checkButtonId == buttonList.get(currentMole)){
+            //add score
+            score += 1;
+            scoreText.setText(Integer.toString(score));
+
+            //set new mole
+            currentMole = setNewMole();
+        }
+        else{
+            //log wrong button pressed
+            Log.v(TAG, "Wrong Button Pressed!");
+        }
     }
 
-    public void setNewMole()
+    public int setNewMole()
     {
         /* Hint:
             Clears the previous mole location and gets a new random location of the next mole location.
             Sets the new location of the mole.
          */
+        Log.v(TAG, "setNewMole");
         Random ran = new Random();
-        int randomLocation = ran.nextInt(9);
+        final int randomLocation = ran.nextInt(9);
+
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+
+                buttonList.get(randomLocation).setText("*");
+
+            }
+        });
+
+        return randomLocation;
     }
+
+    View.OnClickListener moleListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            doCheck((Button) v);
+        }
+    };
 }
 
